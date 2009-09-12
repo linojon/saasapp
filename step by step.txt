@@ -1,0 +1,687 @@
+
+=========================================
+CREATE APP
+-------------------------
+
+	$ sudo gem source -a http://gems.github.com
+	$ sudo gem install nifty-generators
+	$ sudo gem install rspec rspec-rails cucumber webrat launchy
+
+	$ rails saasapp
+	$ cd saasapp
+	
+	edit config/environment.rb
+			config.gem "authlogic"
+			# dependencies for saaslogic
+			config.gem 'activemerchant', :lib => 'active_merchant'
+			config.gem "money"
+			config.gem 'rubyist-aasm', :lib => 'aasm'	
+		  
+			
+
+	edit config/environments/test.rb
+			config.gem "rspec", :lib => false, :version => ">= 1.2.0"
+			config.gem "rspec-rails", :lib => false, :version => ">= 1.2.0"  
+			config.gem "mocha"
+			config.gem 'thoughtbot-shoulda', :lib => false, :source => 'http://gems.github.com'
+	
+	$ sudo rake gems:install
+	$ sudo rake gems:install RAILS_ENV=test
+	
+	$ script/generate cucumber
+	
+	$ script/generate rspec
+	edit spec/spec_helper.rb
+			require 'shoulda'
+		and
+			config.mock_with :mocha
+	
+	$ script/generate nifty_layout 
+	$ script/generate nifty_authentication --authlogic
+  $ rake db:migrate
+	
+	edit config/environments/development.rb
+			require 'ruby-debug' 
+			
+-------------------------
+DUMMY APP - infos with authorization
+------------------------
+
+	$ script/generate feature Info title:string body:text
+
+	$ script/generate nifty_scaffold info title:string body:text 
+	$ rake db:migrate
+....	
+cuke
+	$ rake cucumber
+	edit features/manage_infos.feature
+			change "Create" to "Submit" (for compatiblity with nifty_scaffold _form)
+					And I press "Submit"
+			add
+					Scenario: Home page
+						Given I am on the homepage
+						Then I should see "Welcome to Infos"
+						And I should see "Login or Sign up"
+						
+					Scenario: Home page has link to infos when logged in
+						Given a user is logged in as "subscriber"
+						And I am on the homepage
+						Then I should see "View Private Infos"
+					
+....	
+	add to controllers/infos_controller.rb
+			before_filter :login_required, :except => :welcome
+			
+			def welcome
+		  end
+		  
+	create views/infos/welcome.html.erb
+			<h1>Welcome to Infos</h1>
+			<%= logged_in? ? link_to( "View Private Infos", infos_path) : link_to( "Login or Sign up", login_path) %>
+			
+	routes.rb
+			map.root :controller => 'infos', :action => 'welcome'
+		  
+	delete public/index.html
+....
+cuke
+	edit features/support/paths.rb, add
+			when /the infos list page/
+	      infos_path
+			when /login/
+		    login_path
+			when /signup/
+		    signup_path
+		  
+		  
+	edit manage_infos.feature, add
+			Scenario: Cannot manage infos when not logged in
+				Given I am on the homepage
+				When I go to the infos list page
+				Then I should be on the login page
+				And I should see "You must first log in or sign up before accessing this page."
+		
+	tips
+		- can add 'And show me the page', or my own 'And (show me)'
+					add it to other_steps.rb
+					add show_me to support/env.rb
+					mkdir public/cucumber and add
+		-	run one feature, eg
+			$ cucumber --require features --require lib features/manage_infos.feature:10
+			or use 
+					alias cuke="cucumber --require features --require lib"
+					
+		
+
+	create features/step_definitions/user_steps.rb
+			Given /^a user is logged in as "(.*)"$/ do |username|
+			  @current_user = User.create!(
+			    :username => username,
+			    :password => 'secret',
+			    :password_confirmation => 'secret',
+			    :email => "#{username}@example.com"
+			  )
+
+			  # :create syntax for restful_authentication w/ aasm. Tweak as needed.
+			  # @current_user.activate! 
+
+			  visit "/login" 
+			  fill_in("user_session_username", :with => username) 
+			  fill_in("password", :with => 'secret') 
+			  click_button("Log in")
+			  response.body.should =~ /Logged/m  
+			end
+			
+	edit manage_infos.feature, in scenarios "Register new info" and "Delete info"
+		add as first step
+			Given a user is logged in as "subscriber"
+	  can also change the next Given to And
+			
+....
+spec
+	edit spec/controllers/infos_controller_spec.rb, add
+		before :each do
+	    controller.stubs(:login_required).returns(true)
+	  end
+	  
+	$ rake db:test:prepare
+	$ rake spec
+
+------------------------
+REGISTER/LOGIN/LOGOUT		
+------------------------	
+....
+cuke
+	create features/user_authentication.features
+			Scenario: Register as new user
+			Scenario: Log in
+		  
+....	
+SHOW ME, register
+
+	edit views/layouts/application.html.erb
+			<%= render 'layouts/user_nav' %>
+			
+	create views/layouts/_user_nav.html.erb
+			<div id="user_nav">
+				<%= link_to "Home", root_path %> |
+				<% if current_user %>
+					<%= link_to "My profile", user_path(:current) %> |
+					<%= link_to "Logout", logout_path %>
+				<% else %>
+					<%= link_to "Sign up", signup_path %> |
+					<%= link_to "Login", login_path %>
+				<% end %>				
+			</div>
+	
+	edit to public/stylesheets/application.css to add
+			#flash_notice, #flash_error {
+				...
+				width: 60%;
+			}
+			
+			#user_nav {
+				float: right;
+				font-size: 12px;
+				text-align: right;
+			}
+
+	edit views/user_sessions/new.html.erb
+			<%= f.label :username, "User name or email" %><br />
+
+	edit models/user_sessions.rb, add
+			find_by_login_method :find_by_username_or_email
+		 
+	edit models/user.rb, add
+			def self.find_by_username_or_email(login)
+			  find_by_username(login) || find_by_email(login)
+			end
+			  
+SHOW ME
+SHOW LOGIN ERRORS
+....
+cuke
+	edit features/user_authentication.features
+			Scenario: Log in errors
+....
+
+  in views/user_sessions/new.html.erb
+	  	<%= f.error_messages :header_message => 'Please try again!' %>
+	
+	edit config/locales/en.yml
+	  en:
+			authlogic: 
+			  error_messages: 
+			    login_not_found: is not registered
+	(be sure its indented as shown, using spaces not tabs)
+	
+	Note, should have password recovery, etc
+	    see http://wiki.github.com/josevalim/auth_helpers
+	
+SHOW ME	
+-------------------------
+SHOW ME
+dumy data
+	- visit http://localhost:3000/
+	- add new info:
+		title: Aaa	body: This is info A.
+		title: Bbb  body: This is info B.
+
+  - edit profile FAIL
+
+-------------------------	
+USER PROFILE
+
+....
+cuke
+	edit features/user_authentication.feature
+			Scenario: Edit profile
+....
+	edit users_controller.rb, add
+			before_filter :login_required, :except => [:new, :create]
+			before_filter :find_user, :except => [:new, :create]
+		  ...
+		
+			def show
+		  end
+			
+			def edit
+		  end
+
+		  def update
+		    if @user.update_attributes(params[:user])
+		      flash[:notice] = "Successfully updated user profile."
+		      redirect_to root_url
+		    else
+		      render :action => 'edit'
+		    end
+		  end
+		
+			private
+
+		  def find_user
+		    @user = current_user
+		  end
+		  
+		(note, #new and #create still call @user = User.new)
+		  
+	create views/users/show.html.erb
+			<% title "Show User Profile" %>
+
+			<p>
+			  <strong>Username:</strong>
+			  <%=h @user.username %>
+			</p>
+			<p>
+			  <strong>Email:</strong>
+			  <%=h @user.email %>
+			</p>
+
+			<p>
+			  <%= link_to "Edit Profile", edit_user_path(@user) %>
+			</p>
+			
+	
+  create views/users/edit.html.erb
+			<% title "Edit User Profile" %>
+
+			<% form_for @user do |f| %>
+			  <%= f.error_messages %>
+			  <p>
+			    <%= f.label :email %><br />
+			    <%= f.text_field :email %>
+			  </p>
+			  <p>
+			    <%= f.label :password %><br />
+			    <%= f.password_field :password, :value => nil, :autocomplete => 'off' %>
+			  </p>
+			  <p>
+			    <%= f.label :password_confirmation %><br />
+			    <%= f.password_field :password_confirmation %>
+			  </p>
+			  <p><%= f.submit "Submit" %></p>
+				<p><%= link_to "Cancel", root_url %>
+			<% end %>
+		
+SHOW ME
+Logout
+
+==============================================
+Install the SaasRamp plugin	
+==============================================
+
+TBD
+	$ script/plugin install ...
+	$ script/generate saaslogic
+				- creates migration
+				- creates config/subscriptions.yml
+				- creates config/initializers/subscriptions.rb
+				- creates config/initializers/active_merchant/*
+				- 
+				
+	edit migration
+			add app-specific fields for plan limits
+	$ rake db:migrate
+	
+	edit config/subscriptions.yml
+			setup the plans, add app-specific limits per migration
+	$ rake subscriptions:plans
+	
+	edit models/user.rb, add
+			acts_as_subscriber
+			
+TBD
+	edit config/subscriptions.yml
+			setup the gateway
+			
+....
+spec
+	add to spec/models/user_spec.rb
+			it_should_behave_like "acts as subscriber"
+		  
+	add to spec/spec_helper.rb
+			require 'vendor/plugins/saaslogic/spec/acts_as_subscriber_spec'
+....
+
+==============================================
+add plans select to signup form
+....
+cuke
+	create features/subscription_signup.feature
+			Scenario: I sign up for an account
+....
+
+	edit users_controller.rb, add to #new AND to #create (error case)
+			@allowed_plans = SubscriptionPlan.all(:order => :rate_cents)
+			
+	edit views/users/new.html.erb, add
+			<p>
+				<%= f.label :subscription_plan %><br />
+				<%= f.select :subscription_plan, @allowed_plans.collect {|p| [ p.name, p.id ] } %>
+			</p>
+	
+show subscription in My Profile
+....
+cuke
+	create features/subscription_status.feature
+			Scenario: Free plan, I see plan name in My Profile
+			Scenario: Paid plan, I see plan name in My Profile
+		  
+....
+
+	edit views/users/show.html.erb, add to top
+			<%= render "sidebar" %>
+			
+	create views/users/_sidebar.html.erb
+			<div class="sidebar">
+				<h2>Subscription</h2>
+				<p>
+					<strong>Plan:</strong>
+					<%= @user.subscription.plan.name.titleize %>
+					<span style="font-size:smaller">(<%= link_to "Change Plan", '' %>)</span>
+				</p>
+				<% unless @user.subscription.free? %>
+				<p>
+					<strong>Status:</strong>
+					<%= @user.subscription.state.titleize %>
+				</p>
+				<p>
+					<strong>Paid Through:</strong>
+					<%= @user.subscription.next_renewal_on %>
+				</p>
+				<% end %>
+				<p>
+					<%= button_to "Account Details", '', :method => :get %>
+				</p>
+			</div>
+			
+	edit application.css, add
+			.sidebar {
+				float: right;
+				font-size: 12px;
+				background-color: #a88;
+				border: 2px solid #aaa;
+				padding: 1em;
+			}
+
+	
+----
+need to migrate existing users?
+		$ script/generate migration migrate_users_subscription
+		edit migration
+				def self.up
+					free_plan = SubscriptionPlan.default_plan
+			    User.all.each {|u| u.update_attributes :plan => free_plan }
+			  end
+		$ rake db:migrate
+		
+
+=========================================
+subscriptions_controller
+=========================================
+Note, could put cc in its own controller, or used nested fields_for to combine into the subscription update; we'll compromise and add a separate credit_card/create_credit_card
+Note, instead of using scaffold we'll just write the controller and views
+
+	create subscriptions_controller.rb
+			class SubscriptionsController < ApplicationController
+		  	before_filter :login_required
+			  before_filter :find_subscription
+
+			  def show    
+			  end  
+
+			  def edit
+			  end
+
+			  def update
+			  end
+			
+				def credit_card
+				end
+				
+				def store_credit_card
+				end
+				
+				def history
+				end
+				
+			  def cancel
+			  end
+
+			  private
+
+			  def find_subscription
+					@user = current_user
+			    @subscription = current_user.subscription
+			  end
+			end
+			
+	
+	edit routes.rb
+			map.resources :subscriptions, :member => { :credit_card => :get, :store_credit_card => :post, :history => :get, :cancel => :get }
+		  
+
+  edit views/users/_sidebar.html.erb, add paths 
+			<%= link_to "Change Plan", edit_subscription_path(:current) %>
+			<%= button_to "Account Details", subscription_path(:current), :method => :get %>
+			
+	create views/subscriptions/show.html.erb
+			<% title "Subscription Details" %>
+			<fieldset>
+				<legend>Subscription</legend>
+				<p>
+					<strong>Plan:</strong>
+					<%= @subscription.subscription_plan.name.titleize %>
+					<%= button_to "Change Plan", edit_subscription_path(:current), :method => :get %>
+				</p>
+				<% unless @user.subscription.free? %>
+					<p>
+						<strong>Status:</strong>
+						<%= @user.subscription.state.titleize %>
+					</p>
+					<% if @subscription.trial? %>
+						<p>
+							<strong>Trial Period Ends:</strong>
+							<%= @subscription.next_renewal_on %>
+						</p>
+					<% else %>
+						<p>
+							<strong>Paid Through:</strong>
+							<%= @subscription.next_renewal_on %>
+						</p>
+					<% end %>
+				<% end %>
+			</fieldset>
+			<fieldset>
+				<legend>Billing Info</legend>
+				<p>
+					<strong>Credit Card:</strong>
+				  <% if @subscription.profile.nil? || @subscription.profile.no_info? %>
+						(no credit card on file)
+					<% else %>
+						<%= "#{@subscription.profile.cc_type.titleize} xxxx-xxxx-xxxx-#{@subscription.profile.cc_last_digits} Expires: #{@subscription.profile.cc_expires_on}" %>
+					<% end %>
+					<%= button_to "Update Credit Card", credit_card_subscription_path(:current), :method => :get %>
+				</p>
+				<% if @subscription.last_transaction %>
+				<p>
+					<strong>Last Transaction:</strong>
+						<%= @subscription.last_transaction.created_at %>
+						<%= "for $#{@subscription.transaction.amount }" unless @subscription.transaction.amount.to_i==0 %>
+						<%= "(#{link_to 'history', history_subscription_path(:current)})" %>
+				</p>
+			<% end %>
+			
+			
+	create views/subscriptions/history.html.erb
+			<h1>Transaction History</h1>
+			<ul>
+				<% @subscription.transactions(:order => 'created_at DESC').each do |tx| %>
+				  <li> <%= tx.created_at %> : <%= tx.action.titleize %> <%= tx.amount %> <%= tx.message unless tx.success? %></li>
+				<% end %>
+			</ul>
+			<%= link_to "Back", subscription_path(:current) %>
+			
+			
+SHOW ME
+
+=========================================
+store credit card
+=========================================
+....
+cuke
+	create features/subscription_credit_card.feature
+			Scenario: I add credit card info
+....
+
+
+  edit subscriptions_controller.rb
+		def credit_card
+		  @credit_card = @subscription.profile.new_credit_card
+		end
+
+		def store_credit_card
+		  profile = @subscription.profile
+		  profile.credit_card = params[:credit_card]
+		  profile.request_ip = request.remote_ip
+		  if profile.save
+		    flash[:notice] = "Credit card info has been securely stored. No charges have been made at this time."  
+		    redirect_to subscription_path(:current)
+	    else
+	      @credit_card = profile.credit_card
+	      render :action => 'credit_card'
+	    end
+		end
+		
+  create views/subscriptions/credit_card.html.erb
+			<% title "Credit Card" %>
+
+			<% form_for :credit_card, :url => {:action => :store_credit_card} do |f| %>
+				<%= f.error_messages %>
+
+			  <p>
+			    <%= f.label :first_name %><br />
+			    <%= f.text_field :first_name %>
+			  </p>
+			  <p>
+			    <%= f.label :last_name %><br />
+			    <%= f.text_field :last_name %>
+			  </p>
+			  <p>
+			    <%= f.label :type, 'Card type' %><br />
+			    <%= f.select :type, SubscriptionConfig.gateway.supported_cardtypes.collect {|c| [c.to_s.titleize, c.to_s]} %>
+			  </p>
+			  <p>
+			    <%= f.label :number, 'Card number' %><br />
+			    <%= f.text_field :number %>
+			  </p>
+			  <p>
+			    <%= f.label :verification_value, 'Card Verification Value (CVV)' %><br />
+			    <%= f.text_field :verification_value, :size => 4 %>
+			  </p>
+			  <p>
+			    <%= f.label :month, 'Card expires on:' %><br />
+					month: <%= f.select :month,  1.upto(12).to_a.map  { |i| "%02d" % i } %>
+					year: <%= f.select :year, Date.today.year.upto(Date.today.year+10).to_a %>
+			  </p>
+
+			  <p><%= f.submit "Submit", :disable_with => "One moment please..." %></p>
+			<% end %>
+			
+
+SHOW ME
+add credit card: braintree test
+	visa
+	4111111111111111
+	999
+bogus test
+	bogus
+	3 or 2 or 1
+	999
+	
+modify credit card
+history
+
+!!!!!!!!!!!!!!!!
+
+add to application_controller.rb
+	filter_parameter_logging :credit_card
+
+edit user_sessions_controller.rb
+      # (move this into a helper)
+      sub = current_user.subscription
+      msgs = []
+      msgs << "Trial subscription expires in #{pluralize sub.days_remaining, 'day'}" if sub.trial?
+      msgs << "Subscription is past due" if sub.past_due?
+      msgs << "No credit card on file" if sub.profile.no_info? && sub.due?(7)
+      msgs << "There was a problem charging your credit card, please udate your profile" if sub.profile.error?     
+			flash[:alert] = msgs.join('. ') unless msgs.empty?
+      
+==============================================
+note, defaults to braintree test
+==============================================
+==============================================
+==============================================
+Creating the sassam plugin
+==============================================
+
+	$ cd vendor/plugins
+	$ git clone git://github.com/pat-maddox/rspec-plugin-generator.git
+	$ cd ../..
+	$ ./script/generate rspec_plugin saasam —with-generator
+	
+	setup acts_as_subscriber skeleton
+			see http://www.sitepoint.com/blogs/2008/01/16/howto-write-a-plug-in/
+			
+	$ script/generate nifty_config subscriptions
+			rename files from _config...
+			
+	write rake task to create/update plans
+	
+	
+for example how to writes specs for acts_as plugins see
+		http://code.google.com/p/acts-as-authentable/source/browse/trunk/acts_as_authentable/spec
+	
+
+==============================================
+
+
+TODO
+
+- cucumber
+		change plans
+			features
+				prorate cost
+						higher - charge more (difference)
+						lower - credit difference (keep in record)
+				cant change plans that dont meet criteria
+						via callback in subscriber model (?)
+		cancel subscription
+		expired subscription
+				
+- acts as subscriber behaves as spec
+
+- gateways
+		see saasy initializers
+		braintree (test)
+		authorize net
+		
+- SslRequirement
+
+- add billing address (assume needed by gateway?)		
+
+- pluginize
+		generators
+				migrations
+				models
+		subscriptions_config.yml and loader
+		configurable mailer class (see freemium)
+
+				
+- open source
+		github
+		blog post and screencast
+		
+			
+Lockfile
+	http://snipplr.com/view/9346/lockfile-with-cron/

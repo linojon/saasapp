@@ -1,0 +1,11 @@
+<%#= render :partial => "/shared/email_header", :locals => {:user => @user} %>
+
+This email is to let you know we successfully charged your account the amount of <%= @subscription.plan.rate.format %>.
+
+  Your Plan: <%= @subscription.plan.name %> (<%= @subscription.plan.rate %> per <%= @subscription.plan.interval==1 ? "month" : pluralize( @subscription.plan.interval, "month") %>)
+  Paid: <%= @amount %>
+  Paid Through: <%= @subscription.next_renewal_on %>
+
+Thank you!
+
+<%#= render :partial => "/shared/email_footer" %>

@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>Subscription Details</title>
+    <link href="/stylesheets/application.css?1251964784" media="screen" rel="stylesheet" type="text/css" />
+    
+  </head>
+  <body>
+    <div id="container">
+			<div id="user_nav">
+	<a href="/">Home</a> |
+	
+		<a href="/users/current">My profile</a> |
+		<a href="/logout">Logout</a>
+					
+</div>
+
+			
+      
+        <h1>Subscription Details</h1>
+      
+      
+<fieldset>
+	<legend>Subscription</legend>
+	<p>
+		<strong>Plan:</strong>
+		Basic
+		<form method="get" action="/subscriptions/current/edit" class="button-to"><div><input type="submit" value="Change Plan" /></div></form>
+	</p>
+	
+		<p>
+			<strong>Status:</strong>
+			Trial
+						
+		</p>
+		
+			<p>
+				<strong>Trial Period Ends:</strong>
+				2009-10-10
+			</p>
+		
+	
+</fieldset>
+<fieldset>
+	<legend>Billing Info</legend>
+	<p>
+		<strong>Credit Card:</strong>
+	  
+			(no credit card on file)
+		
+		<form method="get" action="/subscriptions/current/credit_card" class="button-to"><div><input type="submit" value="Update Credit Card" /></div></form>
+	</p>
+	
+
+    </div>
+  </body>
+</html>

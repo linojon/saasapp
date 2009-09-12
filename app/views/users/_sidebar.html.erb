@@ -1,0 +1,21 @@
+<div class="sidebar">
+	<h2>Subscription</h2>
+	<p>
+		<strong>Plan:</strong>
+		<%= @user.subscription_plan.name.titleize %>
+		<span style="font-size:smaller">(<%= link_to "Change Plan", edit_subscription_path(:current) %>)</span>
+	</p>
+	<% unless @user.subscription.free? %>
+	<p>
+		<strong>Status:</strong>
+		<%= @user.subscription.state.titleize %>
+	</p>
+	<p>
+		<strong>Paid Through:</strong>
+		<%= @user.subscription.next_renewal_on %>
+	</p>
+	<% end %>
+	<p>
+		<%= button_to "Account Details", subscription_path(:current), :method => :get %>
+	</p>
+</div>

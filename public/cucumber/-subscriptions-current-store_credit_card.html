@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>Credit Card</title>
+    <link href="/stylesheets/application.css?1251964784" media="screen" rel="stylesheet" type="text/css" />
+    
+  </head>
+  <body>
+    <div id="container">
+			<div id="user_nav">
+	<a href="/">Home</a> |
+	
+		<a href="/users/current">My profile</a> |
+		<a href="/logout">Logout</a>
+					
+</div>
+
+			
+      
+        <h1>Credit Card</h1>
+      
+      
+
+<form action="/subscriptions/current/store_credit_card" method="post">
+	<div class="errorExplanation" id="errorExplanation"><h2>1 error prohibited this profile from being saved</h2><p>There were problems with the following fields:</p><ul><li>Failed to store card: Bogus Gateway: Forced failure</li></ul></div>
+	
+  <p>
+    <label for="profile_credit_card_first_name">First name</label><br />
+    <input id="profile_credit_card_first_name" name="profile[credit_card][first_name]" size="30" type="text" value="First Name" />
+  </p>
+  <p>
+    <label for="profile_credit_card_last_name">Last name</label><br />
+    <input id="profile_credit_card_last_name" name="profile[credit_card][last_name]" size="30" type="text" value="Last Name" />
+  </p>
+  <p>
+    <label for="profile_credit_card_type">Card type</label><br />
+    <select id="profile_credit_card_type" name="profile[credit_card][type]"><option value="bogus" selected="selected">Bogus</option></select>
+  </p>
+  <p>
+    <label for="profile_credit_card_number">Card number</label><br />
+    <input id="profile_credit_card_number" name="profile[credit_card][number]" size="30" type="text" value="2" />
+  </p>
+  <p>
+    <label for="profile_credit_card_verification_value">Card Verification Value (CVV)</label><br />
+    <input id="profile_credit_card_verification_value" name="profile[credit_card][verification_value]" size="4" type="text" value="999" />
+  </p>
+  <p>
+    <label for="profile_credit_card_month">Card expires on:</label><br />
+		month: <select id="profile_credit_card_month" name="profile[credit_card][month]"><option value="01">01</option>
+<option value="02">02</option>
+<option value="03">03</option>
+<option value="04">04</option>
+<option value="05">05</option>
+<option value="06">06</option>
+<option value="07">07</option>
+<option value="08">08</option>
+<option value="09">09</option>
+<option value="10">10</option>
+<option value="11">11</option>
+<option value="12">12</option></select>
+		year: <select id="profile_credit_card_year" name="profile[credit_card][year]"><option value="2009">2009</option>
+<option value="2010">2010</option>
+<option value="2011">2011</option>
+<option value="2012" selected="selected">2012</option>
+<option value="2013">2013</option>
+<option value="2014">2014</option>
+<option value="2015">2015</option>
+<option value="2016">2016</option>
+<option value="2017">2017</option>
+<option value="2018">2018</option>
+<option value="2019">2019</option></select>
+  </p>
+	
+  <p><input id="profile_submit" name="commit" onclick="if (window.hiddenCommit) { window.hiddenCommit.setAttribute('value', this.value); }else { hiddenCommit = this.cloneNode(false);hiddenCommit.setAttribute('type', 'hidden');this.form.appendChild(hiddenCommit); }this.setAttribute('originalValue', this.value);this.disabled = true;this.value='One moment please...';result = (this.form.onsubmit ? (this.form.onsubmit() ? this.form.submit() : false) : this.form.submit());if (result == false) { this.value = this.getAttribute('originalValue');this.disabled = false; }return result;" type="submit" value="Submit" /></p>
+</form>
+
+    </div>
+  </body>
+</html>

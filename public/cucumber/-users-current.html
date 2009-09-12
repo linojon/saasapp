@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>
+    <title>Show User Profile</title>
+    <link href="/stylesheets/application.css?1251964784" media="screen" rel="stylesheet" type="text/css" />
+    
+  </head>
+  <body>
+    <div id="container">
+			<div id="user_nav">
+	<a href="/">Home</a> |
+	
+		<a href="/users/current">My profile</a> |
+		<a href="/logout">Logout</a>
+					
+</div>
+
+			
+      
+        <h1>Show User Profile</h1>
+      
+      
+
+<div class="sidebar">
+	<h2>Subscription</h2>
+	<p>
+		<strong>Plan:</strong>
+		Free
+		<span style="font-size:smaller">(<a href="/subscriptions/current/edit">Change Plan</a>)</span>
+	</p>
+	
+	<p>
+		<form method="get" action="/subscriptions/current" class="button-to"><div><input type="submit" value="Account Details" /></div></form>
+	</p>
+</div>
+
+
+<p>
+  <strong>Username:</strong>
+  subscriber
+</p>
+<p>
+  <strong>Email:</strong>
+  subscriber@example.com
+</p>
+
+<p>
+  <a href="/users/1/edit">Edit Profile</a>
+</p>
+
+    </div>
+  </body>
+</html>
