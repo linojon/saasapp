@@ -107,15 +107,7 @@ describe SubscriptionProfile do
       card.verification_value.should be_blank
     end
     
-    it "un-stores card in gateway on destroy" do
-      @profile.credit_card = bogus_credit_card
-      @profile.save.should be_true
-      
-      SubscriptionTransaction.expects(:unstore).returns(
-        SubscriptionTransaction.new( :success => true )
-      )
-      @profile.destroy
-    end
+    it "uses update instead of store if have a profile_key"
   end
 
 end

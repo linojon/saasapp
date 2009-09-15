@@ -115,8 +115,8 @@ class SubscriptionProfile < ActiveRecord::Base
       tx  = SubscriptionTransaction.store(credit_card)
       subscription.transactions.push( tx )    
       if tx.success?
-        # remember the token/key/id (whatever)
-        self.profile_key = tx.reference
+        # remember the token/key/billing id (whatever)
+        self.profile_key = tx.token
     
         # remember some non-secure params for convenience
         self.card_first_name     = credit_card.first_name

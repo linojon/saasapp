@@ -2,6 +2,7 @@ class SubscriptionTransaction < ActiveRecord::Base
   belongs_to  :subscription
   serialize   :params
   composed_of :amount, :class_name => 'Money', :mapping => [ %w(amount_cents cents) ], :allow_nil => true
+  attr_accessor :token
   
   class << self
     # note, according to peepcode pdf, many gateways require a unique order_id on each transaction
@@ -30,6 +31,22 @@ class SubscriptionTransaction < ActiveRecord::Base
       end
     end
 
+    def update( profile_key, credit_card, options = {})
+      options[:order_id] ||= unique_order_number
+      # some gateways can update, otherwise unstore/store it
+      # thus, always capture the profile key in case it changed
+      if SubscriptionConfig.gateway.respond_to?(:update)
+        process( 'update' ) do |gw|
+          gw.update( profile_key, credit_card, options )
+        end
+      else
+        process( 'update' ) do |gw|
+          gw.unstore( profile_key, options )
+          gw.store( credit_card, options )
+        end
+      end
+    end
+
     def unstore( profile_key, options = {})
       options[:order_id] ||= unique_order_number
       process( 'unstore' ) do |gw|
@@ -37,53 +54,47 @@ class SubscriptionTransaction < ActiveRecord::Base
       end
     end
 
+
     def charge( amount, profile_key, options ={})
       options[:order_id] ||= unique_order_number
       if SubscriptionConfig.gateway.respond_to?(:purchase)
-        result = process( 'charge', amount ) do |gw|
+        process( 'charge', amount ) do |gw|
           gw.purchase( amount, profile_key, options )
         end        
       else
         # do it in 2 transactions
-        result = process( 'charge', amount ) do |gw|
-          gw.authorize( amount, profile_key, options )
-        end
-        if result.success?
-          result = process( 'charge', amount ) do |gw|
+        process( 'charge', amount ) do |gw|
+          result = gw.authorize( amount, profile_key, options )
+          if result.success?
             gw.capture( amount, result.reference, options )
+          else
+            result
           end
         end
       end
-      result
     end
     
     def credit( amount, profile_key, options = {})
       options[:order_id] ||= unique_order_number
-      process( 'credit', amount) do |gw|
-        gw.credit( amount, profile_key, options )
+      if gw.respond_to?(:credit)
+        process( 'credit', amount) do |gw|
+          gw.credit( amount, profile_key, options )
+        end
+      else
+        # need to refund against a previous charge
+        tx = subscription.transactions.recent_charge( amount )
+        if tx
+          process( 'credit', amount ) do |gw|
+            #gw.refund( amount, tx.reference, options )
+            # syntax follows void
+            gw.refund( tx.reference, options.merge(:amount => amount) )
+          end
+        end
       end
     end
 
-    # other possible transactions, not using at the moment
-    
-    # def authorize( amount, credit_card, options = {})
-    #   process( 'authorization', amount) do |gw|
-    #     gw.authorize( amount, credit_card, options )
-    #   end
-    # end
-    # 
-    # def capture( amount, authorization, options = {})
-    #   process( 'capture', amount) do |gw|
-    #     gw.capture( amount, authorization, options )
-    #   end
-    # end
-    # 
-    # def void( amount, authorization, options = {})
-    #   process( 'void', amount) do |gw|
-    #     gw.void( amount, authorization, options )
-    #   end
-    # end
-
+    # other possible transactions, not used at the moment
+    # authorize, capture, void
     
     private
     
@@ -98,6 +109,7 @@ class SubscriptionTransaction < ActiveRecord::Base
 
         result.success   = response.success? 
         result.reference = response.authorization 
+        result.token     = response.token
         result.message   = response.message 
         result.params    = response.params 
         result.test      = response.test? 
@@ -112,8 +124,10 @@ class SubscriptionTransaction < ActiveRecord::Base
       result 
     end 
     
+    # maybe should make this a callback option to acts_as_subscriber
     def unique_order_number
-      "#{Time.now.to_i}-#{rand(1_000_000)}"
+      # "#{Time.now.to_i}-#{rand(1_000_000)}"
+      ActiveMerchant::Utils::generate_unique_id
     end
   end
 end

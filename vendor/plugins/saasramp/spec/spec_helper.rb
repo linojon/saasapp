@@ -55,6 +55,25 @@ def bogus_credit_card(options = {})
   ActiveMerchant::Billing::CreditCard.new( credit_card_hash(options) ) 
 end 
 
+def address_hash(options = {})
+  { 
+    :name     => 'Jim Smith',
+    :address1 => '1234 My Street',
+    :address2 => 'Apt 1',
+    :company  => 'Widgets Inc',
+    :city     => 'Ottawa',
+    :state    => 'ON',
+    :zip      => 'K1C2N6',
+    :country  => 'CA',
+    :phone    => '(555)555-5555',
+    :fax      => '(555)555-6666'
+  }.update(options)
+end
+
+def generate_unique_id
+  ActiveMerchant::Utils::generate_unique_id
+end
+
 #
 
 #--------------------

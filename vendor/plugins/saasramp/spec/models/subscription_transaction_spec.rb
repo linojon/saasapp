@@ -93,6 +93,12 @@ describe SubscriptionTransaction do
   end
   
   # -------------------------
+  describe "update card" do
+    it "updates card"
+    it "unstores then stores if gateway doesnt support update"
+  end
+  
+  # -------------------------
   describe "unstore card" do    
     it "successfully unstores a credit card" do
       profile_key = '1'
@@ -214,6 +220,12 @@ describe SubscriptionTransaction do
     end
     
     it "logs result"
+    
+    describe "as refund" do
+      it "uses refund when gateway doesnt support credit"
+      it "finds a recent charge"
+      it "refunds against that charge"
+    end
   end
   
 end

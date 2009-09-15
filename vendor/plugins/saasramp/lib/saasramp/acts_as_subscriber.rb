@@ -38,6 +38,7 @@ module Saasramp           #:nodoc:
   		  # overwrite this method
   		  # compare subscriber to the plan's limits
   		  # return a blank value if ok (nil, false, [], {}), anything else means subscriber has exceeded limits
+  		  # maybe should make this a callback option to acts_as_subscriber
   		  def subscription_plan_check(plan)
   		    "foobar"
   		    # example:

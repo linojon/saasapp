@@ -685,3 +685,16 @@ TODO
 			
 Lockfile
 	http://snipplr.com/view/9346/lockfile-with-cron/
+
+
+============
+github
+
+	create project on github
+	
+	$ git init
+	$ git add .
+	$ git commit =m "initial commit"
+	$ git remote add origin git@github.com:linoj/saasapp.git
+	$ git push origin master
+	
