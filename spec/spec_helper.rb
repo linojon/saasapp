@@ -4,7 +4,6 @@ ENV["RAILS_ENV"] ||= 'test'
 require File.dirname(__FILE__) + "/../config/environment" unless defined?(RAILS_ROOT)
 require 'spec/autorun'
 require 'spec/rails'
-require 'shoulda'
 
 require 'vendor/plugins/saasramp/spec/acts_as_subscriber_spec'
 
@@ -44,7 +43,7 @@ Spec::Runner.configure do |config|
   # RSpec uses it's own mocking framework by default. If you prefer to
   # use mocha, flexmock or RR, uncomment the appropriate line:
   #
-  config.mock_with :mocha
+  # config.mock_with :mocha
   # config.mock_with :flexmock
   # config.mock_with :rr
   #

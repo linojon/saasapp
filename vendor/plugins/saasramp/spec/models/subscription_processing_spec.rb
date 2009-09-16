@@ -1,10 +1,19 @@
 require File.dirname(__FILE__) + '/../spec_helper'
 
+# note, mailer specs are a bit redundant with the subscription_observer spec but
+# i like having them here too so the daily processing spec is more complete
+
 describe Subscription, "processing tasks" do
+  before :all do
+    ActiveRecord::Observer.allow_peeping_toms = true
+  end
   before :each do
     mailer_setup
     create_subscription_plans unless @free
     @today = Time.zone.today
+  end
+  after :all do
+    ActiveRecord::Observer.allow_peeping_toms = false
   end
   
   # -------------------------
@@ -135,7 +144,7 @@ describe Subscription, "processing tasks" do
       @subscriber.subscription.profile.update_attributes :state => 'error', :profile_key => '2'
     end
   
-    it "should set expired" do         
+    it "should set expired" do    
       Subscription.process_expirations
       @subscriber.reload
       @subscriber.subscription.should be_expired

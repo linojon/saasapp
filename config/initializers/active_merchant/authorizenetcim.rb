@@ -1,3 +1,6 @@
+# this file represents major hacking on the gateway, culled from various sources
+# hopefully we'll integrate it into the Authorize.net gateway itself and eliminate this monkey patching
+
 class AuthorizeNetCimResponse < ActiveMerchant::Billing::Response
   def token
     @authorization || @params['direct_response']['transaction_id'] 
@@ -67,37 +70,37 @@ class ActiveMerchant::Billing::AuthorizeNetCimGateway
       end
 
       # Run an auth and capture transaction against the stored CC
-      def purchase(money, billing_id)
+      def purchase(money, billing_id, options = {})
         if (response = get_customer_profile(:customer_profile_id => billing_id)).success?
-          create_customer_profile_transaction(
+          create_customer_profile_transaction( options.merge(
             :transaction => { 
               :customer_profile_id => billing_id, 
               :customer_payment_profile_id => response.params['profile']['payment_profiles']['customer_payment_profile_id'], 
               :type => :auth_capture, :amount => amount(money) 
             }
-          )
+          ))
         else
           response
         end
       end
       
       # authorize
-      def authorize(money, billing_id)
+      def authorize(money, billing_id, options = {})
         if (response = get_customer_profile(:customer_profile_id => billing_id)).success?
-          create_customer_profile_transaction(
+          create_customer_profile_transaction( options.merge(
             :transaction => { 
               :customer_profile_id => billing_id, 
               :customer_payment_profile_id => response.params['profile']['payment_profiles']['customer_payment_profile_id'], 
               :type => :auth_only, :amount => amount(money) 
             }
-          )
+          ))
         else
           response
         end
       end
       
       # void
-      def void(money, trans_id)
+      def void(money, trans_id, options = {})
           create_customer_profile_transaction(
             :transaction => { 
               :type => :void,
@@ -115,6 +118,7 @@ class ActiveMerchant::Billing::AuthorizeNetCimGateway
             :transaction => { 
               :customer_profile_id => billing_id, 
               :customer_payment_profile_id => response.params['profile']['payment_profiles']['customer_payment_profile_id'], 
+              
               :type => :refund, 
               :trans_id => trans_id,
               :amount => amount(money) 
@@ -142,7 +146,7 @@ class ActiveMerchant::Billing::AuthorizeNetCimGateway
       # end
 
       # Destroy a customer profile
-      def unstore(billing_id)
+      def unstore(billing_id, options = {})
         delete_customer_profile(:customer_profile_id => billing_id)
       end
   #   end
@@ -168,7 +172,7 @@ end
       when :void
         requires!(options[:transaction], :trans_id)
       when :refund
-        # requires!(options[:transaction], :trans_id) &&
+        requires!(options[:transaction], :trans_id) &&
           (
             (options[:transaction][:customer_profile_id] && options[:transaction][:customer_payment_profile_id]) ||
             options[:transaction][:credit_card_number_masked] ||
@@ -186,7 +190,7 @@ end
   def create_customer_profile_transaction_for_refund(options)
     requires!(options, :transaction)
     options[:transaction][:type] = :refund
-    # requires!(options[:transaction], :trans_id)
+    requires!(options[:transaction], :trans_id)
     requires!(options[:transaction], :amount)
 
     request = build_request(:create_customer_profile_transaction, options)

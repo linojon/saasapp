@@ -108,11 +108,12 @@ class SubscriptionProfile < ActiveRecord::Base
     #debugger
     return unless credit_card && credit_card.valid?
     
-    # we might be updating to a new card (TODO: use update instead of unstore/store when gateway supports that)
-    unstore_card if profile_key
-    
     transaction do # makes this atomic
-      tx  = SubscriptionTransaction.store(credit_card)
+      if profile_key
+        tx  = SubscriptionTransaction.update( profile_key, credit_card)
+      else
+        tx  = SubscriptionTransaction.store(credit_card)
+      end
       subscription.transactions.push( tx )    
       if tx.success?
         # remember the token/key/billing id (whatever)

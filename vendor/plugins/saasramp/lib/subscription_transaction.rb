@@ -1,3 +1,6 @@
+# SubscriptionTransaction encapsulates the ActiveMerchant gateway methods
+# providing a consistent api for the rest of the SaasRamp plugin
+
 class SubscriptionTransaction < ActiveRecord::Base
   belongs_to  :subscription
   serialize   :params
@@ -74,9 +77,19 @@ class SubscriptionTransaction < ActiveRecord::Base
       end
     end
     
+    # credit will charge back to the credit card
+    # some gateways support doing arbitrary credits, others require a transaction id, 
+    # we encapsulate this difference here, looking for a recent successful charge if necessary
+
+    # Note, when using refund (vs credit), the gateway needs time to process the purchase before we can refund against it
+    # for example according to Authorize.net support, thats about every 10 minute in the test environment
+    # in production "they would only settle once a day after the merchant defined Transaction Cut Off Time."
+    # so if the credit fails (and transaction was "refund") the app should tell the user to try again in a day (?!)
+    
     def credit( amount, profile_key, options = {})
+      #debugger
       options[:order_id] ||= unique_order_number
-      if gw.respond_to?(:credit)
+      if SubscriptionConfig.gateway.respond_to?(:credit)
         process( 'credit', amount) do |gw|
           gw.credit( amount, profile_key, options )
         end
@@ -84,8 +97,7 @@ class SubscriptionTransaction < ActiveRecord::Base
         # need to refund against a previous charge
         tx = subscription.transactions.recent_charge( amount )
         if tx
-          process( 'credit', amount ) do |gw|
-            #gw.refund( amount, tx.reference, options )
+          process( 'refund', amount ) do |gw|
             # syntax follows void
             gw.refund( tx.reference, options.merge(:amount => amount) )
           end
@@ -93,7 +105,7 @@ class SubscriptionTransaction < ActiveRecord::Base
       end
     end
 
-    # other possible transactions, not used at the moment
+    # not used at the moment:
     # authorize, capture, void
     
     private

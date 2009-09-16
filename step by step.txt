@@ -24,6 +24,7 @@ CREATE APP
 			config.gem "rspec-rails", :lib => false, :version => ">= 1.2.0"  
 			config.gem "mocha"
 			config.gem 'thoughtbot-shoulda', :lib => false, :source => 'http://gems.github.com'
+			
 	
 	$ sudo rake gems:install
 	$ sudo rake gems:install RAILS_ENV=test
@@ -42,6 +43,10 @@ CREATE APP
 	
 	edit config/environments/development.rb
 			require 'ruby-debug' 
+			
+	#$ script/plugin install git://github.com/pat-maddox/no-peeping-toms.git
+		actually better luck with newer fork
+		$ script/plugin install git://github.com/shenie/no-peeping-toms.git
 			
 -------------------------
 DUMMY APP - infos with authorization
@@ -661,11 +666,6 @@ TODO
 				
 - acts as subscriber behaves as spec
 
-- gateways
-		see saasy initializers
-		braintree (test)
-		authorize net
-		
 - SslRequirement
 
 - add billing address (assume needed by gateway?)		

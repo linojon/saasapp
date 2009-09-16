@@ -53,7 +53,7 @@ describe Subscription do
   describe "renew" do
     before :each do
       SubscriptionConfig.trial_period = 0
-      SubscriptionTransaction.stubs(:charge).returns(SubscriptionTransaction.new(:success => true))
+      SubscriptionTransaction.stub!(:charge).and_return(SubscriptionTransaction.new(:success => true))
       @plan = SubscriptionPlan.create( :name => 'basic', :rate_cents => 1000, :interval => 1)      
       @subscription = create_subscription( :plan => @plan )
       #@subscription.next_renewal_on.should == (Time.now.midnight + 1.month).to_date
@@ -63,18 +63,18 @@ describe Subscription do
       @subscription.should be_due
     end
     
-    it "returns true when successful" do
+    it "and_return true when successful" do
       @subscription.renew.should be_true
     end
     
-    it "wont renew unless due (returns nil)" do   
+    it "wont renew unless due (and_return nil)" do   
       @subscription.next_renewal_on = @today + 1.day
       @subscription.renew.should be_nil
       @subscription.next_renewal_on.should == (@today + 1.day)    
     end
     
     it "charges credit card the current plan rate" do
-      SubscriptionTransaction.expects(:charge).with(Money.new(1000), anything).returns( SubscriptionTransaction.new(:success => true) )
+      SubscriptionTransaction.should_receive(:charge).with(Money.new(1000), anything).and_return( SubscriptionTransaction.new(:success => true) )
       @subscription.renew      
     end
     
@@ -92,9 +92,9 @@ describe Subscription do
     
     describe 'transaction fails' do
       before :each do
-        SubscriptionTransaction.stubs(:charge).returns(SubscriptionTransaction.new(:success => false))
+        SubscriptionTransaction.stub!(:charge).and_return(SubscriptionTransaction.new(:success => false))
       end
-      it "fails if charge transaction fails (returns false)" do
+      it "fails if charge transaction fails (and_return false)" do
         @subscription.renew.should be_false
       end
     
@@ -113,7 +113,7 @@ describe Subscription do
   # -------------------------
   describe "cancel" do
     before :each do      
-      SubscriptionTransaction.stubs(:credit).returns(SubscriptionTransaction.new(:success => true))
+      SubscriptionTransaction.stub!(:credit).and_return(SubscriptionTransaction.new(:success => true))
       @plan = SubscriptionPlan.create( :name => 'basic', :rate_cents => 1000, :interval => 1)      
       @subscription = create_subscription( :plan => @plan )
       @today = Time.zone.today
@@ -123,7 +123,7 @@ describe Subscription do
       SubscriptionPlan.instance_variable_set('@default_plan', nil)
     end
     
-    it "returns true when successful" do
+    it "and_return true when successful" do
       @subscription.cancel.should be_true
     end
     
@@ -133,7 +133,7 @@ describe Subscription do
     end
     
     it "credit unused value back to credit card" do
-      SubscriptionTransaction.expects(:credit).with(200, anything).returns( SubscriptionTransaction.new(:success => true) )
+      SubscriptionTransaction.should_receive(:credit).with(200, anything).and_return( SubscriptionTransaction.new(:success => true) )
       @subscription.cancel      
     end
     
@@ -149,22 +149,22 @@ describe Subscription do
       @subscription = create_subscription( :plan => @plan )
     end
     
-    it "returns nil when next renewal is nil" do
+    it "and_return nil when next renewal is nil" do
       @subscription.next_renewal_on = nil
       @subscription.days_remaining.should be_nil
     end
     
-    it "returns 0 when next renewal is today" do
+    it "and_return 0 when next renewal is today" do
       @subscription.next_renewal_on = Time.zone.today
       @subscription.days_remaining.should == 0
     end
 
-    it "returns 3 when next renewal is 3 days from now" do
+    it "and_return 3 when next renewal is 3 days from now" do
       @subscription.next_renewal_on = Time.zone.today + 3.days
       @subscription.days_remaining.should == 3
     end
 
-    it "returns -2 when next renewal is 2 days ago" do
+    it "and_return -2 when next renewal is 2 days ago" do
       @subscription.next_renewal_on = Time.zone.today - 2.days
       @subscription.days_remaining.should == -2
     end
@@ -176,27 +176,27 @@ describe Subscription do
       @subscription = create_subscription( :plan => @plan )
     end
     
-    it "returns nil when next renewal is nil" do
+    it "and_return nil when next renewal is nil" do
       @subscription.next_renewal_on = nil
       @subscription.due?.should be_nil
     end
     
-    it "returns true next renewal is today" do
+    it "and_return true next renewal is today" do
       @subscription.next_renewal_on = Time.zone.today
       @subscription.due?.should be_true
     end
 
-    it "returns false when next renewal is 3 days from now" do
+    it "and_return false when next renewal is 3 days from now" do
       @subscription.next_renewal_on = Time.zone.today + 3.days
       @subscription.due?.should be_false
     end
     
-    it "returns true when due(3.days) and next renewal is 3 days from now" do
+    it "and_return true when due(3.days) and next renewal is 3 days from now" do
       @subscription.next_renewal_on = Time.zone.today + 3.days
       @subscription.due?(3.days).should be_true
     end
 
-    it "returns true when next renewal is 2 days ago" do
+    it "and_return true when next renewal is 2 days ago" do
       @subscription.next_renewal_on = Time.zone.today - 2.days
       @subscription.due?.should be_true
     end
@@ -208,7 +208,7 @@ describe Subscription do
       @plan = SubscriptionPlan.create( :name => 'basic', :rate_cents => 1000 )      
       @subscriber = create_subscriber( :subscription_plan => @plan )
       @subscription = @subscriber.subscription
-      @subscription.subscriber.expects(:subscription_plan_check).with(@plan).returns("exceeded limits")
+      @subscription.subscriber.should_receive(:subscription_plan_check).with(@plan).and_return("exceeded limits")
   
       @subscription.exceeds_plan.should == "exceeded limits"
     end
@@ -218,7 +218,7 @@ describe Subscription do
       @plan2 = SubscriptionPlan.create( :name => 'limited', :rate_cents => 1000 )      
       @subscriber = create_subscriber( :subscription_plan => @plan )
       @subscription = @subscriber.subscription
-      @subscription.subscriber.expects(:subscription_plan_check).with(@plan2).returns("exceeded limits")
+      @subscription.subscriber.should_receive(:subscription_plan_check).with(@plan2).and_return("exceeded limits")
   
       @subscription.exceeds_plan(@plan2).should == "exceeded limits"
     end
@@ -228,8 +228,8 @@ describe Subscription do
       @plan2 = SubscriptionPlan.create( :name => 'limited', :rate_cents => 1000 )      
       @subscriber = create_subscriber( :subscription_plan => @plan )
       @subscription = @subscriber.subscription
-      @subscription.subscriber.expects(:subscription_plan_check).with(@plan).returns("exceeded limits")
-      @subscription.subscriber.expects(:subscription_plan_check).with(@plan2).returns(nil)
+      @subscription.subscriber.should_receive(:subscription_plan_check).with(@plan).and_return("exceeded limits")
+      @subscription.subscriber.should_receive(:subscription_plan_check).with(@plan2).and_return(nil)
   
       @subscription.allowed_plans.should == [@plan2]
     end
@@ -241,10 +241,7 @@ describe Subscription do
       @plan     = SubscriptionPlan.create( :name => 'basic', :rate_cents => 1000, :interval => 1)      
       @new_plan = SubscriptionPlan.create( :name => 'pro', :rate_cents => 2000, :interval => 1)      
       @today = Time.zone.today
-      SubscriptionTransaction.stubs(:charge).returns(SubscriptionTransaction.new(:success => true))
-      # for invoice email:
-      mailer_setup
-      Subscription.any_instance.stubs(:subscriber).returns(User.new(:email => 'joe@example.com'))
+      SubscriptionTransaction.stub!(:charge).and_return(SubscriptionTransaction.new(:success => true))
     end
     
     describe "when active" do
@@ -258,21 +255,21 @@ describe Subscription do
         @subscription.plan.should == @new_plan
       end
       it "charges only incremental higher cost" do
-        SubscriptionTransaction.expects(:charge).with(Money.new(1800),anything).returns( SubscriptionTransaction.new(:success => true) )        
+        SubscriptionTransaction.should_receive(:charge).with(Money.new(1800),anything).and_return( SubscriptionTransaction.new(:success => true) )        
         @subscription.change_plan( @new_plan )
         @subscription.reload
         @subscription.balance_cents.should == 0
       end
       it "deducts unused value" do
         @new_plan.rate_cents = 700
-        SubscriptionTransaction.expects(:charge).with(Money.new(500),anything).returns( SubscriptionTransaction.new(:success => true) )       
+        SubscriptionTransaction.should_receive(:charge).with(Money.new(500),anything).and_return( SubscriptionTransaction.new(:success => true) )       
         @subscription.change_plan( @new_plan )
         @subscription.reload
         @subscription.balance_cents.should == 0
       end
       it "leaves a balance when new plan is less than unused value" do
         @new_plan.rate_cents = 75
-        SubscriptionTransaction.expects(:charge).never     
+        SubscriptionTransaction.should_receive(:charge).never     
         @subscription.change_plan( @new_plan )
         @subscription.reload
         @subscription.balance_cents.should == -125
@@ -285,12 +282,6 @@ describe Subscription do
         @subscription.change_plan( @new_plan )
         @subscription.next_renewal_on.should == @today + 1.month
       end
-      it "sends invoice email" do
-        mailer_setup
-        @subscription.change_plan( @new_plan )
-        number_of_emails_sent.should == 1
-        last_email_sent.subject.should =~ /Service invoice/
-      end        
     end
     
     describe "when in trial" do
@@ -328,7 +319,7 @@ describe Subscription do
           @subscription.plan.should == @new_plan
         end
         it "deducts unused (although unpaid) value" do
-          SubscriptionTransaction.expects(:charge).with(Money.new(2200),anything).returns( SubscriptionTransaction.new(:success => true) )       
+          SubscriptionTransaction.should_receive(:charge).with(Money.new(2200),anything).and_return( SubscriptionTransaction.new(:success => true) )       
           @subscription.change_plan( @new_plan )
           @subscription.balance_cents.should == 0
         end
@@ -340,16 +331,11 @@ describe Subscription do
           @subscription.change_plan( @new_plan )
           @subscription.next_renewal_on.should == @today + 1.month
         end
-        it "sends email" do
-          @subscription.change_plan( @new_plan )
-          number_of_emails_sent.should == 1
-          last_email_sent.subject.should =~ /Service invoice/
-        end        
       end
     
       describe "and credit card still fails" do
         before :each do
-          SubscriptionTransaction.stubs(:charge).returns(SubscriptionTransaction.new(:success => false))
+          SubscriptionTransaction.stub!(:charge).and_return(SubscriptionTransaction.new(:success => false))
           @subscription.warning_level = 2
           @subscription.change_plan( @new_plan )
         end       
@@ -380,7 +366,7 @@ describe Subscription do
       @user = create_subscriber
       @subscription = @user.subscription
       @subscription.update_attribute :balance_cents, 1500
-      SubscriptionTransaction.stubs(:charge).returns( SubscriptionTransaction.new(:success => true ))
+      SubscriptionTransaction.stub!(:charge).and_return( SubscriptionTransaction.new(:success => true ))
     end
     
     it "charges against balance" do
@@ -389,12 +375,12 @@ describe Subscription do
     end
     
     it "charges credit card" do
-      SubscriptionTransaction.expects(:charge).with(Money.new(1500), anything).returns( SubscriptionTransaction.new(:success => true ))
+      SubscriptionTransaction.should_receive(:charge).with(Money.new(1500), anything).and_return( SubscriptionTransaction.new(:success => true ))
       @subscription.charge_balance
     end
     
     it "saves the transaction" do
-      SubscriptionTransaction.expects(:charge).returns( SubscriptionTransaction.new(:success => true ))
+      SubscriptionTransaction.should_receive(:charge).and_return( SubscriptionTransaction.new(:success => true ))
       @subscription.charge_balance
       @subscription.transactions.count.should == 1
     end
@@ -407,7 +393,7 @@ describe Subscription do
     
     describe "transaction fails" do
       before :each do
-        SubscriptionTransaction.expects(:charge).returns( SubscriptionTransaction.new(:success => false ))
+        SubscriptionTransaction.should_receive(:charge).and_return( SubscriptionTransaction.new(:success => false ))
         @subscription.profile.state = 'authorized'
         @subscription.charge_balance
       end
@@ -426,7 +412,7 @@ describe Subscription do
       @user = create_subscriber
       @subscription = @user.subscription
       @subscription.update_attribute :balance_cents, -1500
-      SubscriptionTransaction.stubs(:credit).returns( SubscriptionTransaction.new(:success => true ))
+      SubscriptionTransaction.stub!(:credit).and_return( SubscriptionTransaction.new(:success => true ))
     end
     
     it "credits balance" do
@@ -435,12 +421,12 @@ describe Subscription do
     end
     
     it "credits credit card" do
-      SubscriptionTransaction.expects(:credit).with(1500, anything).returns( SubscriptionTransaction.new(:success => true ))
+      SubscriptionTransaction.should_receive(:credit).with(1500, anything).and_return( SubscriptionTransaction.new(:success => true ))
       @subscription.credit_balance
     end
     
     it "saves the transaction" do
-      SubscriptionTransaction.expects(:credit).returns( SubscriptionTransaction.new(:success => true ))
+      SubscriptionTransaction.should_receive(:credit).and_return( SubscriptionTransaction.new(:success => true ))
       @subscription.credit_balance
       @subscription.transactions.count.should == 1
     end
@@ -453,7 +439,7 @@ describe Subscription do
     
     describe "transaction fails" do
       before :each do
-        SubscriptionTransaction.expects(:credit).returns( SubscriptionTransaction.new(:success => false ))
+        SubscriptionTransaction.should_receive(:credit).and_return( SubscriptionTransaction.new(:success => false ))
         @subscription.profile.state = 'authorized'
         @subscription.credit_balance
       end

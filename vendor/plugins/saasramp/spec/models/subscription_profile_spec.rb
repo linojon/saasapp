@@ -55,7 +55,7 @@ describe SubscriptionProfile do
         
     it "stores card in gateway on save" do
       @profile.credit_card = bogus_credit_card
-      SubscriptionTransaction.expects(:store).returns(
+      SubscriptionTransaction.should_receive(:store).and_return(
         SubscriptionTransaction.new( :success => true )
       )      
       @profile.save.should be_true

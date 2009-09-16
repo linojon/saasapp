@@ -119,11 +119,7 @@ class Subscription < ActiveRecord::Base
     end
     
     # save changes so far, and restart billing cycle (unless in trial or free)
-    if ok = save && renew
-      # since renew is called here rather than in batch, the email still need to be sent
-      SubscriptionMailer.deliver_charge_success(self)
-    end
-    ok 
+    save && renew
   end
   
   # list of plans this subscriber is allowed to choose
@@ -241,6 +237,10 @@ class Subscription < ActiveRecord::Base
   }
   
   # daily processing
+  # can either use this, change this, or write your own
+  # also see SubscriptionObserver for email notifications and warning levels
+  
+  # send warnings 3 days before trial ends
   def self.process_trial_warnings
     Subscription.with_state(:trial).with_no_warnings.due_in(3.days).each {|sub|
       SubscriptionMailer.deliver_trial_expiring(sub)
@@ -248,39 +248,24 @@ class Subscription < ActiveRecord::Base
     }
   end
   
+  # process all renewals which aren't past due yet
   def self.process_renewals
-    Subscription.with_states(:trial, :active).due_now.each {|sub|
-      if sub.renew
-        SubscriptionMailer.deliver_charge_success(sub)
-      else
-        SubscriptionMailer.deliver_charge_failure(sub)
-        sub.increment!(:warning_level)
-      end
-    }
+    Subscription.with_states(:trial, :active).due_now.each {|sub| sub.renew }
   end
   
+  # process past due which have received one warning, a few days after the first warning went out
   def self.process_expire_warnings
-    # send 2nd warning after 3 days of failure
-    Subscription.with_state(:past_due).with_warning_level(1).due_ago(3.days).each {|sub|
-      if sub.renew
-        SubscriptionMailer.deliver_charge_success(sub)
-      else
-        SubscriptionMailer.deliver_second_charge_failure(sub)
-        sub.increment!(:warning_level)
-      end
-    }
+    Subscription.with_state(:past_due).with_warning_level(1).due_ago(3.days).each {|sub| sub.renew }
   end
   
+  # end of grace period, try one more time, then expire
   def self.process_expirations
-    # end of grace period
-    Subscription.with_state(:past_due).due_ago(SubscriptionConfig.grace_period.days).each {|sub|
-      if sub.renew
-        SubscriptionMailer.deliver_charge_success(sub)
-      else
+    Subscription.with_state(:past_due).due_ago(SubscriptionConfig.grace_period.days).each  do |sub| 
+      unless sub.renew
         sub.expired
         SubscriptionMailer.deliver_subscription_expired(sub)
       end
-    }
+    end
   end
     
   # -----------

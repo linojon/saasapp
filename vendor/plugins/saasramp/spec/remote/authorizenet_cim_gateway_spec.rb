@@ -38,12 +38,16 @@ describe AuthorizeNetCimGateway do
       response = @gateway.store( @cc )
       @key = response.token
     end
+    
+    after :all do
+      @gateway.unstore( @key ) if @key
+    end
 
     it "update customer profile using customer key"
   
     it "authorize a charge on credit card (for validation)" do
       response = @gateway.authorize( @amount, @key )
-      pp response
+      pp response unless response.success?
       response.should be_success
     end
 
@@ -58,25 +62,35 @@ describe AuthorizeNetCimGateway do
       response.should be_success
     end
 
-    describe "with transaction id" do
-      before :each do
-        response = @gateway.authorize( @amount, @key )
-        #pp response
-        response.should be_success  
-        @trans_id = response.token #params['direct_response']['transaction_id']      
-      end
-          
-      it "voids a charge on credit card (for validation)" do
-        response = @gateway.void( @amount, @trans_id )
-        #pp response
-        response.should be_success
-      end
+    it "voids a charge on credit card (for validation)" do
+      @amount = 2500 # change amount to avoid "duplicate transaction" error
+      response = @gateway.authorize( @amount, @key )
+      pp response unless response.success?
+      response.should be_success  
+      @trans_id = response.token #params['direct_response']['transaction_id']      
+        
+      response = @gateway.void( @amount, @trans_id )
+      #pp response
+      response.should be_success
+    end
 
-      it "refunds a charge" do
-        response = @gateway.refund( @trans_id, :amount => @amount, :billing_id => @key )
-        debugger
-        response.should be_success
-      end
+    it "refunds a charge" do
+      #debugger
+      @amount = 5000 # change amount to avoid "duplicate transaction" error
+      response = @gateway.purchase( @amount, @key  )
+      pp response unless response.success?
+      response.should be_success
+      @trans_id = response.token
+      # the gateway needs time to process the purchase before we can refund against it
+      # according to AN support, thats about every 10 minute in the test environment
+      # in production "they would only settle once a day after the merchant defined Transaction Cut Off Time."
+      seconds = 600
+      puts "sleeping #{seconds}..."
+      sleep seconds
+      puts 'awake'
+      response = @gateway.refund( @trans_id, :amount => @amount, :billing_id => @key )
+      pp response unless response.success?
+      response.should be_success
     end
     
   end
